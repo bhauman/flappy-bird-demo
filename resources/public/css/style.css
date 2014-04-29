@@ -1,0 +1,85 @@
+/*rgb(84,56,71)*/
+
+#board-area {
+    position: relative;
+    width:480px;
+    height: 640px;
+    margin:0px auto;
+    background: rgb(112, 197, 206) url(/imgs/background.png) no-repeat left bottom;
+}
+
+.board {
+    position: relative;
+    width:480px;
+    height: 640px;
+    overflow: hidden;
+}
+
+.scrolling-border {
+  position: absolute;
+  height: 10px;
+  width: 480px;
+  top: 567px;
+  background: transparent url(/imgs/scrolling-border.png) repeat-x top left;
+}
+
+.flappy {
+    position: absolute;
+    background: transparent url(/imgs/flappy-base.png) no-repeat top left;
+    top: 312px;
+    left: 212px;
+    width: 57px;
+    height: 41px;
+}
+
+.pillar {
+  position: absolute;
+  width: 86px;
+  height: 200px;
+}
+
+.pillar-upper {
+  top: 0px;
+  right: 150px;
+  background-image: url(/imgs/upper-pillar-head.png), url(/imgs/pillar-bkg.png);
+  background-position: left bottom, left bottom;
+  background-repeat: no-repeat, repeat-y;
+}
+
+.pillar-lower {
+  bottom: 80px;
+  right: 150px;
+  background-image: url(/imgs/lower-pillar-head.png), url(/imgs/pillar-bkg.png);
+  background-position: left top, left top;
+  background-repeat: no-repeat, repeat-y;
+}
+
+.score {
+  position: absolute;
+  width: 300px;
+  text-align: center;
+  left: 90px;
+  font-size: 58px;
+  top: 13px;
+  color: #fff;
+  text-shadow: -4px 0 black, 0 4px black, 4px 0 black, 0 -4px black;
+  z-index: 5;
+  font-family: monospace;
+}
+
+.start-button {
+    color: rgb(244,176,36);
+    background-color: #fff;
+    font-size: 40px;
+    z-index: 5;
+    position: absolute;
+    font-family: monospace;
+    border-bottom: 3px solid rgb(84,56,71);
+    border-right: 3px solid rgb(84,56,71);
+    padding: 1px 10px;
+    top: 363px;
+    left: 128px;
+    text-align: center;
+    width: 200px;
+    text-shadow: -3px 0 black, 0 3px black, 3px 0 black, 0 -3px black;
+}
