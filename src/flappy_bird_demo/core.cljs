@@ -5,15 +5,13 @@
    [cljs.core.async :refer [<! chan sliding-buffer put! close! timeout]])
   (:require-macros
    [cljs.core.async.macros :refer [go-loop go]]))
+
 (enable-console-print!)
 
 (defn floor [x] (.floor js/Math x))
 
-(defn translate
-  ([start-pos vel time]
-     (floor (+ start-pos (* time vel))))
-  ([start-pos modulo vel time]
-     (floor (+ start-pos (mod (* time vel) modulo)))))
+(defn translate [start-pos vel time]
+  (floor (+ start-pos (* time vel))))
 
 (def horiz-vel -0.15)
 (def gravity 0.05)
@@ -34,24 +32,20 @@
                       :flappy-start-time 0
                       :flappy-y   start-y
                       :pillar-list
-                      [{:start-time 0
-                        :pos-x 900
-                        :gap-top 200 }]})
+                      [{ :start-time 0
+                         :pos-x 900
+                         :cur-x 900
+                         :gap-top 200 }]})
 
-(defn reset-state [{:keys [event-chan] :as st} cur-time]
+(defn reset-state [_ cur-time]
   (-> starting-state
       (update-in [:pillar-list] (fn [pls] (map #(assoc % :start-time cur-time) pls)))
       (assoc
           :start-time cur-time
           :flappy-start-time cur-time
-          :event-chan event-chan
           :timer-running true)))
 
 (fw/defonce flap-state (atom starting-state))
-
-(defmulti transform first)
-
-(defmethod transform :default [_ state] state)
 
 (defn curr-pillar-pos [cur-time {:keys [pos-x start-time] }]
   (translate pos-x horiz-vel (- cur-time start-time)))
@@ -97,7 +91,6 @@
                   (:cur-x (last pillars-in-world)))))
         pillars-in-world))))
 
-
 (defn sine-wave [st]
   (assoc st
     :flappy-y
@@ -120,7 +113,7 @@
                  4)]
   (assoc st :score (if (neg? score) 0 score))))
 
-(defmethod transform :time [[_ timestamp] state]
+(defn time-update [timestamp state]
   (-> state
       (assoc
           :cur-time timestamp
@@ -128,7 +121,7 @@
       update-flappy
       update-pillars
       collision?
-      #_score))
+      score))
 
 (defn jump [{:keys [cur-time jump-count] :as state}]
   (-> state
@@ -136,16 +129,6 @@
           :jump-count (inc jump-count)
           :flappy-start-time cur-time
           :initial-vel jump-vel)))
-
-(defmethod transform :jump [_ state]
-  (jump state))
-
-(defn start-game [event-chan]
-  (.requestAnimationFrame js/window (fn [time]
-                                      (put! event-chan [:start-game time]))))
-
-(defmethod transform :start-game [[_ time] state]
-  (reset-state state time))
 
 ;; derivatives
 
@@ -171,58 +154,53 @@
 
 (defn px [n] (str n "px"))
 
-(defn pillar [{:keys [cur-x upper-height lower-height]}]
+(defn pillar [{:keys [cur-x pos-x upper-height lower-height]}]
   [:div.pillars
    [:div.pillar.pillar-upper {:style {:left (px cur-x)
                                        :height upper-height}}]
    [:div.pillar.pillar-lower {:style {:left (px cur-x)
                                        :height lower-height}}]])
 
-(defn main-template [{:keys [score cur-time jump-count timer-running border-pos event-chan flappy-y pillar-list]}]
+(defn time-loop [time]
+  (let [new-state (swap! flap-state (partial time-update time))]
+    (when (:timer-running new-state)
+      (go
+       (<! (timeout 30))
+       (.requestAnimationFrame js/window time-loop)))))
+
+(defn start-game []
+  (.requestAnimationFrame
+   js/window
+   (fn [time]
+     (reset! flap-state (reset-state @flap-state time))
+     (time-loop time))))
+
+(defn main-template [{:keys [score cur-time jump-count
+                             timer-running border-pos
+                             flappy-y pillar-list]}]
   (sab/html [:div.board { :onMouseDown (fn [e]
-                                         #_(put! event-chan [:jump])
                                          (swap! flap-state jump)
                                          (.preventDefault e))}
              [:h1.score score]
              (if-not timer-running
-               [:a.start-button {:onClick #(start-game event-chan)}
-                (if (pos? jump-count) "RESTART" "START")]
+               [:a.start-button {:onClick #(start-game)}
+                (if (< 1 jump-count) "RESTART" "START")]
                [:span])
              [:div (map pillar pillar-list)]
              [:div.flappy {:style {:top (px flappy-y)}}]
              [:div.scrolling-border {:style { :background-position-x (px border-pos)}}]]))
 
-(defn render-to [react-comp node]
-  (.renderComponent js/React react-comp node))
-
 (let [node (.getElementById js/document "board-area")]
   (defn renderer [full-state]
-    (render-to (main-template full-state) node)))
+    (.renderComponent js/React (main-template full-state) node)))
 
-(defn start []
-  (let [event-chan (chan (sliding-buffer 1))]
-    (go-loop []
-             (when-let [msg (<! event-chan)]
-               (let [new-state (transform msg @flap-state)]
-                 (reset! flap-state (-clone new-state))
-                 (when (:timer-running new-state)
-                   (<! (timeout 30))
-                   (.requestAnimationFrame js/window (fn [time] (put! event-chan [:time time]))))
-                 (recur))))
-    (swap! flap-state assoc :event-chan event-chan )
-    (add-watch flap-state :renderer (fn [_ _ _ n]
-               (renderer (world n))))
-    (put! event-chan [:time (or (:cur-time @flap-state) 0)])))
+(add-watch flap-state :renderer (fn [_ _ _ n]
+                                  (renderer (world n))))
 
-(defn stop []
-  (remove-watch flap-state :renderer)
-  (when (:event-chan @flap-state)
-    (close! (:event-chan @flap-state))))
+(reset! flap-state @flap-state)
 
-(defn restart []
-  (stop)
-  (start))
-
-(fw/defonce starting-game (start))
-
-(fw/watch-and-reload :jsload-callback (fn [url] (restart)))
+(fw/watch-and-reload  :jsload-callback (fn []
+                                         ;; you would add this if you
+                                         ;; have more than one file
+                                         #_(reset! flap-state @flap-state)
+                                         ))
