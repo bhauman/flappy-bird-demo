@@ -168,7 +168,7 @@
   (let [new-state (swap! flap-state (partial time-update time))]
     (when (:timer-running new-state)
       (go
-       (when-not is-mobile (<! (timeout 16.66))) 
+       (when-not is-mobile? (<! (timeout 16.66))) 
        (.requestAnimationFrame js/window time-loop)))))
 
 (defn start-game []
@@ -203,7 +203,8 @@
 (add-watch flap-state :renderer (fn [_ _ _ n]
                                   (renderer (world n))))
 
-(fw/defonce touch-listener
+(when is-mobile?
+  (fw/defonce touch-listener
     (.addEventListener (.getElementById js/document "board-area")
                        "touchstart"
                        (fn [e]
@@ -212,7 +213,7 @@
                              (.preventDefault e)
                              (swap! flap-state jump))
                            (start-game)
-                           ))))
+                           )))))
 
 (reset! flap-state @flap-state)
 
