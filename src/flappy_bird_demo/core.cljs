@@ -215,7 +215,7 @@
 
 (reset! flap-state @flap-state)
 
-(fw/watch-and-reload  :jsload-callback (fn []
+#_(fw/watch-and-reload  :jsload-callback (fn []
                                          ;; you would add this if you
                                          ;; have more than one file
                                          #_(reset! flap-state @flap-state)
