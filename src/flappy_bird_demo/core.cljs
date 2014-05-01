@@ -168,7 +168,8 @@
   (let [new-state (swap! flap-state (partial time-update time))]
     (when (:timer-running new-state)
       (go
-       (when-not is-mobile? (<! (timeout 30))) 
+       (<!
+        (timeout (if is-mobile? 2 30)))
        (.requestAnimationFrame js/window time-loop)))))
 
 (defn start-game []
