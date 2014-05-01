@@ -20,4 +20,9 @@
                 :output-to "resources/public/js/flappy_bird_demo.js"
                 :output-dir "resources/public/js/out"
                 :optimizations :none
-                :source-map true}}]})
+                         :source-map true}}
+             {:id "flappy-bird-deploy"
+              :source-paths ["src"]
+              :compiler {
+                :output-to "resources/public/js/flappy_bird_demo.js"
+                :optimizations :simple}}]})
