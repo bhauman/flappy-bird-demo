@@ -18,7 +18,7 @@
 
 (def horiz-vel -0.15)
 (def gravity 0.05)
-(def jump-vel 20.5)
+(def jump-vel 19)
 (def start-y 312)
 (def bottom-y 561)
 (def flappy-x 212)
@@ -168,7 +168,7 @@
   (let [new-state (swap! flap-state (partial time-update time))]
     (when (:timer-running new-state)
       (go
-       (when-not is-mobile? (<! (timeout 16.66))) 
+       (when-not is-mobile? (<! (timeout 30))) 
        (.requestAnimationFrame js/window time-loop)))))
 
 (defn start-game []
@@ -177,8 +177,6 @@
    (fn [time]
      (reset! flap-state (reset-state @flap-state time))
      (time-loop time))))
-
-
 
 (defn main-template [{:keys [score cur-time jump-count
                              timer-running border-pos
