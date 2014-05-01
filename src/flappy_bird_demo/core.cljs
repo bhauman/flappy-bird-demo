@@ -2,11 +2,14 @@
   (:require
    [sablono.core :as sab :include-macros true]
    [figwheel.client :as fw :include-macros true]
-   [cljs.core.async :refer [<! chan sliding-buffer put! close! timeout]])
+   [cljs.core.async :refer [<! chan sliding-buffer put! close! timeout]]
+   [goog.labs.userAgent.device :as device])
   (:require-macros
    [cljs.core.async.macros :refer [go-loop go]]))
 
 (enable-console-print!)
+
+(def is-mobile? (device/isMobile))
 
 (defn floor [x] (.floor js/Math x))
 
@@ -15,7 +18,7 @@
 
 (def horiz-vel -0.15)
 (def gravity 0.05)
-(def jump-vel 21)
+(def jump-vel 20.5)
 (def start-y 312)
 (def bottom-y 561)
 (def flappy-x 212)
@@ -165,7 +168,7 @@
   (let [new-state (swap! flap-state (partial time-update time))]
     (when (:timer-running new-state)
       (go
-       (<! (timeout 30))
+       (when-not is-mobile (<! (timeout 16.66))) 
        (.requestAnimationFrame js/window time-loop)))))
 
 (defn start-game []
@@ -175,16 +178,19 @@
      (reset! flap-state (reset-state @flap-state time))
      (time-loop time))))
 
+
+
 (defn main-template [{:keys [score cur-time jump-count
                              timer-running border-pos
                              flappy-y pillar-list]}]
   (sab/html [:div.board { :onMouseDown (fn [e]
-                                         (swap! flap-state jump)
-                                         (.preventDefault e))}
+                                         (if timer-running
+                                           (swap! flap-state jump)
+                                           (.preventDefault e)))}
              [:h1.score score]
              (if-not timer-running
-               [:a.start-button {:onClick #(start-game)}
-                (if (< 1 jump-count) "RESTART" "START")]
+               [:a.start-button { :onClick start-game }
+                (if (pos? jump-count) "RESTART" "START")]
                [:span])
              [:div (map pillar pillar-list)]
              [:div.flappy {:style {:top (px flappy-y)}}]
@@ -196,6 +202,17 @@
 
 (add-watch flap-state :renderer (fn [_ _ _ n]
                                   (renderer (world n))))
+
+(fw/defonce touch-listener
+    (.addEventListener (.getElementById js/document "board-area")
+                       "touchstart"
+                       (fn [e]
+                         (if (:timer-running @flap-state)
+                           (do
+                             (.preventDefault e)
+                             (swap! flap-state jump))
+                           (start-game)
+                           ))))
 
 (reset! flap-state @flap-state)
 
