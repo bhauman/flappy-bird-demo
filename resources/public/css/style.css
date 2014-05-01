@@ -1,5 +1,9 @@
 /*rgb(84,56,71)*/
 
+body {
+    background-color: rgb(32,35,50);
+}
+
 #board-area {
     position: relative;
     width:480px;
@@ -82,4 +86,10 @@
     text-align: center;
     width: 200px;
     text-shadow: -3px 0 black, 0 3px black, 3px 0 black, 0 -3px black;
+}
+
+@media (max-width: 480px){
+    body {
+        margin: 0px;
+    }
 }
