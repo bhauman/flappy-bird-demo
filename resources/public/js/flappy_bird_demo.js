@@ -22948,14 +22948,20 @@ flappy_bird_demo.core.time_loop = function time_loop(b) {
             return function(b) {
               var c = b[1];
               if (5 === c) {
-                return c = b, c[2] = b[2], c[1] = 4, new cljs.core.Keyword(null, "recur", "recur", 1122293407);
+                return c = cljs.core.async.timeout.call(null, b[2]), cljs.core.async.impl.ioc_helpers.take_BANG_.call(null, b, 2, c);
               }
               if (4 === c) {
+                return b[2] = 30, b[1] = 5, new cljs.core.Keyword(null, "recur", "recur", 1122293407);
+              }
+              if (3 === c) {
+                return b[2] = 2, b[1] = 5, new cljs.core.Keyword(null, "recur", "recur", 1122293407);
+              }
+              if (2 === c) {
                 var c = b[2], d = window.requestAnimationFrame(time_loop);
                 b[7] = c;
                 return cljs.core.async.impl.ioc_helpers.return_chan.call(null, b, d);
               }
-              return 3 === c ? (c = cljs.core.async.timeout.call(null, 30), cljs.core.async.impl.ioc_helpers.take_BANG_.call(null, b, 5, c)) : 2 === c ? (b[2] = null, b[1] = 4, new cljs.core.Keyword(null, "recur", "recur", 1122293407)) : 1 === c ? (cljs.core.truth_(flappy_bird_demo.core.is_mobile_QMARK_) ? b[1] = 2 : b[1] = 3, new cljs.core.Keyword(null, "recur", "recur", 1122293407)) : null;
+              return 1 === c ? (cljs.core.truth_(flappy_bird_demo.core.is_mobile_QMARK_) ? b[1] = 3 : b[1] = 4, new cljs.core.Keyword(null, "recur", "recur", 1122293407)) : null;
             };
           }(b, c), b, c);
         }(), g = function() {
