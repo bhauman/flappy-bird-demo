@@ -1,5 +1,5 @@
 (defproject flappy-bird-demo "0.1.0-SNAPSHOT"
-  :description "FIXME: write this!"
+  :description "Flappy bird demo"
   :url "http://example.com/FIXME"
 
   :dependencies [[org.clojure/clojure "1.5.1"]
@@ -25,7 +25,4 @@
               :source-paths ["src"]
               :compiler {
                          :output-to "resources/public/js/flappy_bird_demo.js"
-                         :externs ["resources/public/js/react-0.9.0.js"]
-                         :optimizations :advanced
-                         :closure-warnings {:externs-validation :off
-                                            :non-standard-jsdoc :off}}}]})
+                         :optimizations :simple}}]})
