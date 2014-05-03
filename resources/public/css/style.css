@@ -1,12 +1,12 @@
 /*rgb(84,56,71)*/
 
 body {
-    background-color: rgb(32,35,50);
+   background-color: rgb(32,35,50);
 }
 
 #board-area {
     position: relative;
-    width:480px;
+    width: 480px;
     height: 640px;
     margin:0px auto;
     background: rgb(112, 197, 206) url(../imgs/background.png) no-repeat left bottom;
