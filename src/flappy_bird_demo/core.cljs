@@ -1,7 +1,7 @@
 (ns flappy-bird-demo.core
   (:require
    [sablono.core :as sab :include-macros true]
-   [figwheel.client :as fw :include-macros true]
+   [figwheel.client :as fw]
    [cljs.core.async :refer [<! chan sliding-buffer put! close! timeout]])
   (:require-macros
    [cljs.core.async.macros :refer [go-loop go]]))
@@ -45,7 +45,7 @@
           :flappy-start-time cur-time
           :timer-running true)))
 
-(fw/defonce flap-state (atom starting-state))
+(defonce flap-state (atom starting-state))
 
 (defn curr-pillar-pos [cur-time {:keys [pos-x start-time] }]
   (translate pos-x horiz-vel (- cur-time start-time)))
