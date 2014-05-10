@@ -5,8 +5,7 @@
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/clojurescript "0.0-2202"]                 
                  [org.clojure/core.async "0.1.278.0-76b25b-alpha"]
-                 [prismatic/schema "0.2.0"]                 
-                 [sablono "0.1.5"]
+                 [sablono "0.2.16"]
                  [figwheel "0.1.2-SNAPSHOT"]]
 
   :plugins [[lein-cljsbuild "1.0.3"]
