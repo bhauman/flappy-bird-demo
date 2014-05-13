@@ -8,200 +8,239 @@
 
 (enable-console-print!)
 
+;; Constants
+
+(def board-width 480)
+(def board-height 640)
+(def board-bottom 561)
+
+(def border-height 10)
+(def border-width board-width)
+(def border-y 567)
+
+(def bird-x 212)
+(def bird-initial-y 312)
+(def bird-width 57)
+(def bird-height 41)
+
+(def gravity 0.01)
+(def jump-speed 15)
+(def game-speed -0.15)
+
+(def gap-width 86)
+(def gap-height 158)
+(def gap-spacing 324)
+(def first-gap-position (* 2 board-width))
+(def min-pillar-height 60)
+
+;; State
+
+(defn rand-gap-y []
+  (+ min-pillar-height
+     (rand-int (- board-bottom gap-height (* 2 min-pillar-height)))))
+
+(defn make-gap [x] {:initial-x x
+                    :x x
+                    :y (rand-gap-y)})
+
+(def initial-state {:status         :waiting
+                    :score          0
+                    :start-time     0
+                    :curr-time      0
+                    :last-jump      0
+                    :bird-vy        0
+                    :bird-y         bird-initial-y
+                    :bird-tilt      0
+                    :bird-action    :flapping
+                    :border-x       0
+                    :gaps           []
+                    })
+
+(defonce game-state (atom initial-state))
+
+;; System
+
 (defn floor [x] (.floor js/Math x))
+
+(defn abs [x] (.abs js/Math x))
 
 (defn translate [start-pos vel time]
   (floor (+ start-pos (* time vel))))
 
-(def horiz-vel -0.15)
-(def gravity 0.05)
-(def jump-vel 21)
-(def start-y 312)
-(def bottom-y 561)
-(def flappy-x 212)
-(def flappy-width 57)
-(def flappy-height 41)
-(def pillar-spacing 324)
-(def pillar-gap 158) ;; 158
-(def pillar-width 86)
+(defn clamp [min max v]
+  (cond
+   (< v min) min
+   (> v max) max
+   :else v))
 
-(def starting-state { :timer-running false
-                      :jump-count 0
-                      :initial-vel 0
-                      :start-time 0
-                      :flappy-start-time 0
-                      :flappy-y   start-y
-                      :pillar-list
-                      [{ :start-time 0
-                         :pos-x 900
-                         :cur-x 900
-                         :gap-top 200 }]})
+(defn in-pillar? [{:keys [x]}]
+  (and (>= (+ bird-x bird-width) x)
+       (< bird-x (+ x gap-width))))
 
-(defn reset-state [_ cur-time]
-  (-> starting-state
-      (update-in [:pillar-list] (fn [pls] (map #(assoc % :start-time cur-time) pls)))
-      (assoc
-          :start-time cur-time
-          :flappy-start-time cur-time
-          :timer-running true)))
+(defn in-pillar-gap? [bird-y {:keys [y]}]
+  (and (< y bird-y)
+       (> (+ y gap-height)
+          (+ bird-y bird-height))))
 
-(defonce flap-state (atom starting-state))
+(defn pillar-collision? [bird-y pillar]
+  (and
+   (in-pillar? pillar)
+   (not (in-pillar-gap? bird-y pillar))))
 
-(defn curr-pillar-pos [cur-time {:keys [pos-x start-time] }]
-  (translate pos-x horiz-vel (- cur-time start-time)))
+(defn bottom-collision? [bird-y]
+  (>= bird-y (- board-bottom bird-height)))
 
-(defn in-pillar? [{:keys [cur-x]}]
-  (and (>= (+ flappy-x flappy-width)
-           cur-x)
-       (< flappy-x (+ cur-x pillar-width))))
+(defn collision-sys [{:keys [status bird-y gaps] :as state}]
+  (if (not= status :playing) state
+    (let [collision (or
+                     (bottom-collision? bird-y)
+                     (some #(pillar-collision? bird-y %) gaps))]
+      (if collision
+        (assoc state :status :dead)
+        state))))
 
-(defn in-pillar-gap? [{:keys [flappy-y]} {:keys [gap-top]}]
-  (and (< gap-top flappy-y)
-       (> (+ gap-top pillar-gap)
-          (+ flappy-y flappy-height))))
+(defn scoring-sys [{:keys [curr-time start-time] :as state}]
+  (let [score (- (abs (floor (/ (- (* (- curr-time start-time) game-speed) 544)
+                               gap-spacing))) 4)]
+  (assoc state :score (if (neg? score) 0 score))))
 
-(defn bottom-collision? [{:keys [flappy-y]}]
-  (>= flappy-y (- bottom-y flappy-height)))
+(defn action-sys [{:keys [bird-vy] :as state}]
+  (if (pos? bird-vy)
+    (assoc state :bird-action :flapping)
+    (assoc state :bird-action :falling)))
 
-(defn collision? [{:keys [pillar-list] :as st}]
-  (if (some #(or (and (in-pillar? %)
-                      (not (in-pillar-gap? st %)))
-                 (bottom-collision? st)) pillar-list)
-    (assoc st :timer-running false)
-    st))
+(defn tilting-sys [{:keys [bird-vy] :as state}]
+  (let [angle (clamp -30 90 (* -2 bird-vy))]
+    (assoc state :bird-tilt angle)))
 
-(defn new-pillar [cur-time pos-x]
-  {:start-time cur-time
-   :pos-x      pos-x
-   :cur-x      pos-x
-   :gap-top    (+ 60 (rand-int (- bottom-y 120 pillar-gap)))})
+(defn creation-sys [{:keys [status gaps] :as state}]
+  (if (not= status :playing) state
+    (if (empty? gaps) (assoc state :gaps [(make-gap first-gap-position)])
+      (let [visible-gaps (filterv #(> (:x %) (- gap-width)) gaps)]
+        (assoc state
+          :gaps (if (>= (count visible-gaps) 2) visible-gaps
+                  (conj visible-gaps (make-gap (+ gap-spacing (:initial-x (last visible-gaps)))))))))))
 
-(defn update-pillars [{:keys [pillar-list cur-time] :as st}]
-  (let [pillars-with-pos (map #(assoc % :cur-x (curr-pillar-pos cur-time %)) pillar-list)
-        pillars-in-world (sort-by
-                          :cur-x 
-                          (filter #(> (:cur-x %) (- pillar-width)) pillars-with-pos))]
-    (assoc st
-      :pillar-list
-      (if (< (count pillars-in-world) 3)
-        (conj pillars-in-world
-              (new-pillar
-               cur-time
-               (+ pillar-spacing
-                  (:cur-x (last pillars-in-world)))))
-        pillars-in-world))))
+(defn waiting-sys [{:keys [status start-time curr-time] :as state}]
+  (if (not= status :waiting) state
+    (assoc state
+      :bird-y (+ bird-initial-y (* 30 (.sin js/Math (/ (- curr-time start-time) 300))))
+      :border-x (mod (translate 0 game-speed curr-time) 23))))
 
-(defn sine-wave [st]
-  (assoc st
-    :flappy-y
-    (+ start-y (* 30 (.sin js/Math (/ (:time-delta st) 300))))))
+(defn moving-sys [{:keys [status start-time curr-time bird-vy bird-y gaps] :as state}]
+  (if (not= status :playing) state
+    (assoc state
+      :bird-y (min (- bird-y bird-vy) (- board-bottom bird-height))
+      :border-x (mod (translate 0 game-speed curr-time) 23)
+      :gaps (map
+             (fn [{:keys [initial-x] :as gap}] (assoc gap :x (translate initial-x game-speed (- curr-time start-time))))
+             gaps))))
 
-(defn update-flappy [{:keys [time-delta initial-vel flappy-y jump-count] :as st}]
-  (if (pos? jump-count)
-    (let [cur-vel (- initial-vel (* time-delta gravity))
-          new-y   (- flappy-y cur-vel)
-          new-y   (if (> new-y (- bottom-y flappy-height))
-                    (- bottom-y flappy-height)
-                    new-y)]
-      (assoc st
-        :flappy-y new-y))
-    (sine-wave st)))
+(defn jumping-sys [{:keys [last-jump curr-time] :as state}]
+  (if (not= last-jump curr-time) state
+    (assoc state :bird-vy jump-speed)))
 
-(defn score [{:keys [cur-time start-time] :as st}]
-  (let [score (- (.abs js/Math (floor (/ (- (* (- cur-time start-time) horiz-vel) 544)
-                               pillar-spacing)))
-                 4)]
-  (assoc st :score (if (neg? score) 0 score))))
+(defn gravity-sys [{:keys [status bird-vy last-jump curr-time] :as state}]
+  (if (not= status :playing) state
+    (assoc state
+      :bird-vy (- bird-vy (* (- curr-time last-jump) gravity)))))
 
-(defn time-update [timestamp state]
-  (-> state
-      (assoc
-          :cur-time timestamp
-          :time-delta (- timestamp (:flappy-start-time state)))
-      update-flappy
-      update-pillars
-      collision?
-      score))
+(defn input-sys [input-fn]
+  (let [game-sys #(-> % input-fn
+                      waiting-sys
+                      gravity-sys
+                      jumping-sys
+                      moving-sys
+                      tilting-sys
+                      action-sys
+                      collision-sys
+                      scoring-sys
+                      creation-sys
+                      )]
+    (swap! game-state game-sys)))
 
-(defn jump [{:keys [cur-time jump-count] :as state}]
-  (-> state
-      (assoc
-          :jump-count (inc jump-count)
-          :flappy-start-time cur-time
-          :initial-vel jump-vel)))
+;; Rendering
 
-;; derivatives
+(defn time-loop [time]
+  (do
+    (input-sys #(assoc % :curr-time time))
+    (go
+     (<! (timeout 30))
+     (.requestAnimationFrame js/window time-loop))))
 
-(defn border [{:keys [cur-time] :as state}]
-  (-> state
-      (assoc :border-pos (mod (translate 0 horiz-vel cur-time) 23))))
+(defn jump []
+  (input-sys #(let [status (:status %)
+                    time (:curr-time %)]
+                (case status
+                  :waiting (assoc %
+                             :status :playing
+                             :last-jump time
+                             :start-time time)
+                  :playing (assoc %
+                             :last-jump time)
+                  %))))
 
-(defn pillar-offset [{:keys [cur-time]} {:keys [gap-top] :as p}]
-  (assoc p
-    :upper-height gap-top
-    :lower-height (- bottom-y gap-top pillar-gap)))
-
-(defn pillar-offsets [state]
-  (update-in state [:pillar-list]
-             (fn [pillar-list]
-               (map (partial pillar-offset state)
-                    pillar-list))))
-
-(defn world [state]
-  (-> state
-      border
-      pillar-offsets))
+(defn restart-game []
+  (reset! game-state initial-state))
 
 (defn px [n] (str n "px"))
 
-(defn pillar [{:keys [cur-x pos-x upper-height lower-height]}]
-  [:div.pillars
-   [:div.pillar.pillar-upper {:style {:left (px cur-x)
-                                       :height upper-height}}]
-   [:div.pillar.pillar-lower {:style {:left (px cur-x)
-                                       :height lower-height}}]])
+(defn render-bird [{:keys [bird-y bird-tilt bird-action]}]
+  {:style {:left (px bird-x)
+           :top (px bird-y)
+           :width (px bird-width)
+           :height (px bird-height)
+           :background (case bird-action
+                         :falling "url(../public/imgs/flappy-base.png)"
+                         :flapping "url(../public/imgs/flappy-flapping.gif)")
+           :-webkit-transform (str "rotate(" bird-tilt "deg)")}})
 
-(defn time-loop [time]
-  (let [new-state (swap! flap-state (partial time-update time))]
-    (when (:timer-running new-state)
-      (go
-       (<! (timeout 30))
-       (.requestAnimationFrame js/window time-loop)))))
+
+(defn render-gap [{:keys [x y]}]
+  (let [upper-pillar-y y
+        lower-pillar-y (- board-bottom y gap-height)]
+    [:div.pillars
+     [:div.pillar.pillar-upper {:style {:left (px x)
+                                        :height (px upper-pillar-y)
+                                        :width (px gap-width)}}]
+     [:div.pillar.pillar-lower {:style {:left (px x)
+                                        :height (px lower-pillar-y)
+                                        :width (px gap-width)}}]]))
+
+(defn render-border [border-x]
+  {:style { :background-position-x (px border-x)}})
+
+(defn to-html [{:keys [status score gaps border-x] :as state}]
+  (sab/html [:div.board {:onMouseDown (fn [e]
+                                        (jump)
+                                        (.preventDefault e))}
+             (if (= status :playing)
+               [:h1.score score ])
+             (if (= status :dead)
+               [:a.start-button {:onClick restart-game} "RESTART"]
+               [:span])
+             [:div.flappy (render-bird state)]
+             [:div (map render-gap gaps)]
+             [:div.scrolling-border (render-border border-x)]]))
+
+(let [node (.getElementById js/document "board-area")]
+  (defn render [game-state]
+    (.renderComponent js/React (to-html game-state) node)))
+
+(add-watch game-state :renderer (fn [_ _ _ new-state]
+                                  (render new-state)))
 
 (defn start-game []
   (.requestAnimationFrame
    js/window
    (fn [time]
-     (reset! flap-state (reset-state @flap-state time))
+     (reset! game-state (assoc initial-state :start-time time))
      (time-loop time))))
 
-(defn main-template [{:keys [score cur-time jump-count
-                             timer-running border-pos
-                             flappy-y pillar-list]}]
-  (sab/html [:div.board { :onMouseDown (fn [e]
-                                         (swap! flap-state jump)
-                                         (.preventDefault e))}
-             [:h1.score score]
-             (if-not timer-running
-               [:a.start-button {:onClick #(start-game)}
-                (if (< 1 jump-count) "RESTART" "START")]
-               [:span])
-             [:div (map pillar pillar-list)]
-             [:div.flappy {:style {:top (px flappy-y)}}]
-             [:div.scrolling-border {:style { :background-position-x (px border-pos)}}]]))
-
-(let [node (.getElementById js/document "board-area")]
-  (defn renderer [full-state]
-    (.renderComponent js/React (main-template full-state) node)))
-
-(add-watch flap-state :renderer (fn [_ _ _ n]
-                                  (renderer (world n))))
-
-(reset! flap-state @flap-state)
+(start-game)
 
 (fw/watch-and-reload  :jsload-callback (fn []
                                          ;; you would add this if you
                                          ;; have more than one file
-                                         #_(reset! flap-state @flap-state)
+                                         #_(reset! game-state @game-state)
                                          ))
-
