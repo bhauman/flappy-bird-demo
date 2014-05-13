@@ -191,8 +191,8 @@
            :width (px bird-width)
            :height (px bird-height)
            :background (case bird-action
-                         :falling "url(../public/imgs/flappy-base.png)"
-                         :flapping "url(../public/imgs/flappy-flapping.gif)")
+                         :falling "url(./imgs/flappy-base.png)"
+                         :flapping "url(./imgs/flappy-flapping.gif)")
            :-webkit-transform (str "rotate(" bird-tilt "deg)")}})
 
 
