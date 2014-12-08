@@ -36,7 +36,7 @@
                          :pos-x 900
                          :cur-x 900
                          :gap-top 200 }]})
-(This)
+
 (defn reset-state [_ cur-time]
   (-> starting-state
       (update-in [:pillar-list] (fn [pls] (map #(assoc % :start-time cur-time) pls)))
@@ -54,12 +54,12 @@
   (and (>= (+ flappy-x flappy-width)
            cur-x)
        (< flappy-x (+ cur-x pillar-width))))
-(is)
+
 (defn in-pillar-gap? [{:keys [flappy-y]} {:keys [gap-top]}]
   (and (< gap-top flappy-y)
        (> (+ gap-top pillar-gap)
           (+ flappy-y flappy-height))))
-(cool)
+
 (defn bottom-collision? [{:keys [flappy-y]}]
   (>= flappy-y (- bottom-y flappy-height)))
 
@@ -199,9 +199,9 @@
 
 (reset! flap-state @flap-state)
 
-(fw/watch-and-reload  :jsload-callback (fn []
-                                         ;; you would add this if you
-                                         ;; have more than one file
-                                         #_(reset! flap-state @flap-state)
-                                         ))
+(fw/start { :on-jsload (fn []
+                         ;; you would add this if you
+                         ;; have more than one file
+                         #_(reset! flap-state @flap-state)
+                         )})
 
