@@ -1,7 +1,7 @@
 (ns flappy-bird-demo.core
   (:require
+   [cljsjs.react]
    [sablono.core :as sab :include-macros true]
-   [figwheel.client :as fw]
    [cljs.core.async :refer [<! chan sliding-buffer put! close! timeout]])
   (:require-macros
    [cljs.core.async.macros :refer [go-loop go]]))
@@ -192,15 +192,9 @@
 
 (let [node (.getElementById js/document "board-area")]
   (defn renderer [full-state]
-    (.renderComponent js/React (main-template full-state) node)))
+    (.render js/React (main-template full-state) node)))
 
 (add-watch flap-state :renderer (fn [_ _ _ n]
                                   (renderer (world n))))
 
 (reset! flap-state @flap-state)
-
-(fw/start { :on-jsload (fn []
-                         ;; you would add this if you
-                         ;; have more than one file
-                         #_(reset! flap-state @flap-state)
-                         )})

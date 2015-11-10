@@ -2,27 +2,32 @@
   :description "FIXME: write this!"
   :url "http://example.com/FIXME"
 
-  :dependencies [[org.clojure/clojure "1.6.0"]
-                 [org.clojure/clojurescript "0.0-2665"]
-                 [org.clojure/core.async "0.1.346.0-17112a-alpha"]
-                 [sablono "0.2.16"]
-                 [figwheel "0.2.2-SNAPSHOT"]]
+  :dependencies [[org.clojure/clojure "1.7.0"]
+                 [org.clojure/clojurescript "1.7.170"]
+                 [org.clojure/core.async "0.2.371"]
+                 [cljsjs/react "0.13.3-1"]
+                 [sablono "0.4.0"]]
 
-  :plugins [[lein-cljsbuild "1.0.4"]
-            [lein-figwheel "0.2.2-SNAPSHOT"]]
+  :plugins [[lein-cljsbuild "1.1.0"]
+            [lein-figwheel "0.5.0-SNAPSHOT"]]
 
+
+  :clean-targets ^{:protect false} ["resources/public/js/out"
+                                    "resources/public/js/flappy_bird_demo.js"
+                                    :target-path]  
+  
   :source-paths ["src"]
 
   :cljsbuild { 
     :builds [{:id "flappy-bird-demo"
               :source-paths ["src"]
+              :figwheel true
               :compiler {
+                         :main flappy-bird-demo.core
+                         :asset-path "js/out"
                          :output-to "resources/public/js/flappy_bird_demo.js"
                          :output-dir "resources/public/js/out"
-                         :optimizations :none
-                         :cache-analysis true
-                         :source-map-timestamp true
-                         :source-map true}}]}
+                         :source-map-timestamp true}}]}
   
   :figwheel { :css-dirs ["resources/public/css"]
               :open-file-command "emacsclient"
