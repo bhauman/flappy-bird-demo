@@ -1,5 +1,5 @@
-(defproject flappy-bird-demo "0.1.0-SNAPSHOT"
-  :description "FIXME: write this!"
+(defproject flappy-bird-demo "0.1.1-SNAPSHOT"
+  :description "The original figwheel flappybird demo"
   :url "http://example.com/FIXME"
 
   :dependencies [[org.clojure/clojure "1.7.0"]
@@ -10,7 +10,6 @@
 
   :plugins [[lein-cljsbuild "1.1.0"]
             [lein-figwheel "0.5.0-SNAPSHOT"]]
-
 
   :clean-targets ^{:protect false} ["resources/public/js/out"
                                     "resources/public/js/flappy_bird_demo.js"
