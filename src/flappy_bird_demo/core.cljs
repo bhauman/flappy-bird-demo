@@ -136,7 +136,7 @@
   (-> state
       (assoc :border-pos (mod (translate 0 horiz-vel cur-time) 23))))
 
-(defn pillar-offset [{:keys [cur-time]} {:keys [gap-top] :as p}]
+(defn pillar-offset [{:keys [gap-top] :as p}]
   (assoc p
     :upper-height gap-top
     :lower-height (- bottom-y gap-top pillar-gap)))
@@ -144,8 +144,7 @@
 (defn pillar-offsets [state]
   (update-in state [:pillar-list]
              (fn [pillar-list]
-               (map (partial pillar-offset state)
-                    pillar-list))))
+               (map pillar-offset pillar-list))))
 
 (defn world [state]
   (-> state
