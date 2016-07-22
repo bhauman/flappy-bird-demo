@@ -10,7 +10,7 @@
                  [sablono "0.4.0"]]
 
   :plugins [[lein-cljsbuild "1.1.0"]
-            [lein-figwheel "0.5.0-SNAPSHOT"]]
+            [lein-figwheel "0.5.4-7"]]
 
   :clean-targets ^{:protect false} ["resources/public/js/out"
                                     "resources/public/js/flappy_bird_demo.js"
