@@ -1,6 +1,7 @@
 (ns flappy-bird-demo.core
   (:require
    [cljsjs.react]
+   [cljsjs.react.dom]
    [sablono.core :as sab :include-macros true]
    [cljs.core.async :refer [<! chan sliding-buffer put! close! timeout]])
   (:require-macros
@@ -79,7 +80,7 @@
 (defn update-pillars [{:keys [pillar-list cur-time] :as st}]
   (let [pillars-with-pos (map #(assoc % :cur-x (curr-pillar-pos cur-time %)) pillar-list)
         pillars-in-world (sort-by
-                          :cur-x 
+                          :cur-x
                           (filter #(> (:cur-x %) (- pillar-width)) pillars-with-pos))]
     (assoc st
       :pillar-list
@@ -191,7 +192,7 @@
 
 (let [node (.getElementById js/document "board-area")]
   (defn renderer [full-state]
-    (.render js/React (main-template full-state) node)))
+    (.render js/ReactDOM (main-template full-state) node)))
 
 (add-watch flap-state :renderer (fn [_ _ _ n]
                                   (renderer (world n))))

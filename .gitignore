@@ -13,10 +13,22 @@ pom.xml.asc
 *.jar
 *.class
 *-init.clj
-figwheel_server.log
+*.log
 .lein-deps-sum
 .lein-failures
 .lein-plugins
 .lein-repl-history
 .nrepl-port
 .lein-classpath
+
+# Emacs backup files
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
