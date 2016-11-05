@@ -6,6 +6,9 @@ Watch the 6 minute [video](https://www.youtube.com/watch?v=KZjFVdU8VLI)
 
 Checkout the documentation on [lein-figwheel](https://github.com/bhauman/lein-figwheel) to go further!
 
-# LICENSE
+## License
 
-_NOTE: the [LICENSE file is missing](https://github.com/bhauman/flappy-bird-demo/issues/5)_
+Copyright © 2014 Bruce Hauman
+
+Distributed under the [Eclipse Public License](LICENSE) either version 1.0 or any
+later version.
